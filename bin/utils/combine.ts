@@ -13,12 +13,13 @@ export default async function combineFiles(files: string[], output: string) {
       });`;
       }
 
-      const fileContent = await fs.readFile(file);
-      return (
-        "window.addEventListener('DOMContentLoaded', (_event) => { " +
-        fileContent +
-        ' });'
-      );
+      // Inject JS at document-start (raw), NOT wrapped in DOMContentLoaded.
+      // Client mods (e.g. Vencord) must hook the page's module system and capture
+      // globals like window.localStorage BEFORE the page's own scripts run. Deferring
+      // to DOMContentLoaded runs them too late (after the SPA boots, finishes webpack
+      // init and removes localStorage), which breaks the page.
+      const fileContent = await fs.readFile(file, 'utf-8');
+      return fileContent.toString();
     }),
   );
   await fs.writeFile(output, contents.join('\n'));
