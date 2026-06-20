@@ -1,0 +1,43 @@
+name: Build DiscordLite (Vencord)
+
+env:
+  NODE_VERSION: "22"
+  PNPM_VERSION: "10.26.2"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: windows-latest
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Setup Node.js Environment
+        uses: ./.github/actions/setup-env
+        with:
+          mode: build
+
+      - name: Build CLI
+        run: pnpm run cli:build
+
+      - name: Build DiscordLite app (Windows)
+        timeout-minutes: 30
+        shell: pwsh
+        run: |
+          node dist/cli.js "https://discord.com/app" --name "DiscordLite" --width 1200 --height 780 --inject "inject/vencord.js" --inject "inject/vencord.css"
+          git checkout -- src-tauri/Cargo.lock
+
+      - name: Upload MSI (Windows)
+        uses: actions/upload-artifact@v6
+        with:
+          name: DiscordLite-Windows
+          path: DiscordLite.msi
+          retention-days: 7
